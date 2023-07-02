@@ -1,110 +1,103 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
-import test_model as test
+import constants as constant
+import preprocessing_data as pp
+import drawCurves as drawer 
+
+def trainTheModelwithEarlyStop(model):
 
 
-train_path = 'D:/Image_classification_yoga_poses/train_dataset'
-test_path = 'D:/Image_classification_yoga_poses/test_dataset'
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 
-image_size = (128, 128)
-batch_size = 32
-
-
-def modelCreation():
-
-    # Define image size and batch size
-
-    # Create data generators with data augmentation for training and testing
-    train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-        rescale=1./255,
-        shear_range=0.2,
-        zoom_range=0.2,
-        horizontal_flip=True
+    history = model.fit(
+        pp.train_generator,
+        steps_per_epoch=pp.train_generator.n // constant.batch_size,
+        epochs=constant.epochs,
+        validation_data=pp.test_generator,
+        validation_steps=pp.test_generator.n // constant.batch_size,
+        callbacks=[early_stopping]
     )
 
-    test_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-        rescale=1./255)
+    return history
 
-    train_generator = train_datagen.flow_from_directory(
-        train_path,
-        target_size=image_size,
-        batch_size=batch_size,
-        class_mode='categorical'
-    )
 
-    test_generator = test_datagen.flow_from_directory(
-        test_path,
-        target_size=image_size,
-        batch_size=batch_size,
-        class_mode='categorical',
-        shuffle=False
-    )
 
-    # Create a CNN model
-    # Create a CNN model
+def generatePredictionandPrintConfusionMatrix(model):
+    pp.test_generator.reset()
+    y_pred = model.predict(pp.test_generator)
+    y_pred = np.argmax(y_pred, axis=1)
+    true_labels = pp.test_generator.classes
+
+    confusion_mtx = confusion_matrix(true_labels, y_pred)
+    
+    print("Confusion Matrix:")
+    print(confusion_mtx)
+
+
+
+
+
+
+
+
+
+def mainModelCreationFunc():
+
+    # main CNN layers
     model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(image_size[0], image_size[1], 3)))
+    model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(constant.image_size[0], constant.image_size[1], 3)))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Conv2D(256, (3, 3), activation='relu'))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    
+    #Flattening layer
     model.add(tf.keras.layers.Flatten())
+    
+    #Dense Layer
     model.add(tf.keras.layers.Dense(128, activation='relu'))
-    model.add(tf.keras.layers.Dense(train_generator.num_classes, activation='softmax'))
+    model.add(tf.keras.layers.Dense(pp.train_generator.num_classes, activation='softmax'))
 
 
-    # Compile the model
-    model.compile(optimizer='adam',
-                  loss='categorical_crossentropy', metrics=['accuracy'])
+    #Model compiling
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    
+    
+    ## showing a summary for what is happening and change in images dimensions while every CNN layer.
+    model.summary()
 
-    # Train the model
-    epochs = 50
-    history = model.fit(
-        train_generator,
-        steps_per_epoch=train_generator.n // batch_size,
-        epochs=epochs,
-        validation_data=test_generator,
-        validation_steps=test_generator.n // batch_size
-    )
 
-    # Generate predictions on the test set
-    test_generator.reset()
 
-    y_pred = model.predict(test_generator)
-    y_pred = np.argmax(y_pred, axis=1)
 
-    # Obtain true labels for the test set
-    true_labels = test_generator.classes
+    ## Early stopping function to avoid the overfitting effect
+    
+    # Model history is returned back 
+    his = trainTheModelwithEarlyStop(model)
 
-    #  confusion matrix
-    confusion_mtx = confusion_matrix(true_labels, y_pred)
 
-    # Plot the training curves
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('Training Curves')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.legend(['Training Accuracy', 'Validation Accuracy'])
-    plt.show()
+    
 
-    # Print the confusion matrix
-    print("Confusion Matrix:")
-    print(confusion_mtx)
+   
+   
+    
+    # Generate predictions on the test set and generating confusion matrix
+    generatePredictionandPrintConfusionMatrix(model)
+    
+    
+    drawer.showLossCurves(history=his)
+    drawer.showAccuracyCurves(history=his)
+
+    
 
     # Save the model
     model.save('image_classification_model.h5')
 
 
-test_image_path_model = 'D:/Image_classification_yoga_poses/testing_images/29-0.png'
+mainModelCreationFunc()
 
 
-# modelCreation()
 
-test.testThemodelByAnyImage(train_path=train_path,
-                            test_image_path=test_image_path_model)
+
+   
