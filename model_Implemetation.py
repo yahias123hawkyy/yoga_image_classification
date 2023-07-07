@@ -3,40 +3,24 @@ import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 import constants as constant
 import preprocessing_data as pp
-import drawCurves as drawer
-import plotly.graph_objects as go
-from plotly.offline import plot
-import plotly.graph_objects as go
+import draw as drawer
 
 
-def plot_confusion_matrix(confusion_mtx, classes):
-
-    fig = go.Figure(data=go.Heatmap(z=confusion_mtx,
-                                    x=classes,
-                                    y=classes,
-                                    colorscale='Blues'))
-    fig.update_layout(title='Confusion Matrix',
-                      xaxis_title='Predicted label',
-                      yaxis_title='True label',
-                      xaxis=dict(type='category', automargin=True),
-                      yaxis=dict(type='category', automargin=True),
-                      autosize=True,
-                      width=2000,
-                      height=2000
-                      )
-    plot(fig, filename="confusion_matrix.html", auto_open=False)
 
 
 def trainTheModelwithEarlyStop(model):
 
-    # early_stopping = tf.keras.callbacks. EarlyStopping(monitor='val_accuracy', mode='max',
-    #                                                    patience=10,  restore_best_weights=True)  # 10
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', mode='max', patience=5,  restore_best_weights=True)  # 10
 
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+    # early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 
 
     history = model.fit(
+
+        ## pp is an instance from the implemented module preprocessing_data.py
         pp.train_generator,
+
+        ## constant is an instance from the implemented module constants.py
         steps_per_epoch=pp.train_generator.n // constant.batch_size,
         epochs=constant.epochs,
         validation_data=pp.test_generator,
@@ -55,13 +39,26 @@ def generatePredictionandPrintConfusionMatrix(model, traingen):
 
     confusion_mtx = confusion_matrix(true_labels, y_pred)
 
-    plot_confusion_matrix(confusion_mtx, traingen)
+    drawer.plot_confusion_matrix(confusion_mtx, traingen)
+
+
+
+
+
 
 
 def mainModelCreationFunc():
 
-    # main CNN layers
+
+
+    # To make the results the same, it controls the randoms genertaed by Numpy and Tensorflow
+    np.random.seed(42)   
+    tf.random.set_seed(42)
+
+    # main CNN layers STack
     model = tf.keras.models.Sequential()
+
+
     model.add( tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(constant.image_size[0], constant.image_size[1], 3)))
     model.add( tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
@@ -76,6 +73,9 @@ def mainModelCreationFunc():
 
     # Dense Layer
     model.add(tf.keras.layers.Dense(128, activation='relu'))
+
+
+    # Dense Layer to make the Distributed Propability Function
     model.add(tf.keras.layers.Dense(pp.train_generator.num_classes, activation='softmax'))
 
     # optimizer = tf.keras.optimizers.Adam(lr=0.0001)
@@ -84,7 +84,6 @@ def mainModelCreationFunc():
     # showing a summary for what is happening and change in images dimensions while every CNN layer.
     model.summary()
 
-    # Early stopping function to avoid the overfitting effect
 
     # Model history is returned back
     his = trainTheModelwithEarlyStop(model)
@@ -93,16 +92,34 @@ def mainModelCreationFunc():
     generatePredictionandPrintConfusionMatrix(
         model, list(pp.train_generator.class_indices.keys()))
 
+
+    ## ploting and drawing the training accuracy/loss Curves using the implemented module Drawer
     drawer.showLossCurves(history=his)
     drawer.showAccuracyCurves(history=his)
 
-    # Save the model
-    model.save('image_classification_model.h5')
 
 
 mainModelCreationFunc()
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### IT WAS A TRIAL TO USE A TRANSFER LEARNING INSTEAD OF CREATING THE WHOLE CNN STACKS, TO INCREASE ACCURACY BUT IT WAS IN VAIN!
 # Model compiling
 
 #     base_model = tf.keras.applications.MobileNetV3Large(weights='imagenet', include_top=False, input_shape=(constant.image_size[0], constant.image_size[1], 3))

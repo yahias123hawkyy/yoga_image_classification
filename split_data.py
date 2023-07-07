@@ -7,7 +7,7 @@ import constants as constant
 folders = os.listdir(constant.dataset_path)
 
 
-os.makedirs(constant.train_dir, exist_ok=True)
+os.makedirs(constant.train_path, exist_ok=True)
 os.makedirs(constant.test_dir, exist_ok=True)
 
 for folder in folders:
@@ -16,7 +16,7 @@ for folder in folders:
     train_images, test_images = train_test_split(
         images, test_size=0.3, random_state=42)
 
-    train_folder_path = os.path.join(constant.train_dir, folder)
+    train_folder_path = os.path.join(constant.train_path, folder)
     os.makedirs(train_folder_path, exist_ok=True)
     for train_image in train_images:
         src = os.path.join(folder_path, train_image)
