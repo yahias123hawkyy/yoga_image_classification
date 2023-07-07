@@ -1,5 +1,5 @@
 image_size = (128, 128)
-batch_size = 32
+batch_size = 12
 epochs= 30
 
 

@@ -17,7 +17,7 @@ train_generator = train_datagen.flow_from_directory(
         constant.train_path,
         target_size=constant.image_size,
         batch_size=constant.batch_size,
-        class_mode='categorical'
+        class_mode='categorical',
     )
 
 test_generator = test_datagen.flow_from_directory(

@@ -4,13 +4,14 @@ from sklearn.metrics import confusion_matrix
 import constants as constant
 import preprocessing_data as pp
 import draw as drawer
+import os
 
 
 
 
 def trainTheModelwithEarlyStop(model):
 
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', mode='max', patience=5,  restore_best_weights=True)  # 10
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)  # 10
 
     # early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
 
@@ -49,6 +50,8 @@ def generatePredictionandPrintConfusionMatrix(model, traingen):
 
 def mainModelCreationFunc():
 
+
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 
     # To make the results the same, it controls the randoms genertaed by Numpy and Tensorflow
